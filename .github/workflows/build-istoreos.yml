@@ -1,0 +1,125 @@
+name: Build iStore OS T68M
+
+on:
+  workflow_dispatch:
+
+env:
+  REPO_URL: https://github.com/istoreos/istoreos
+  REPO_BRANCH: istoreos-25.12
+  FEEDS_CONF: feeds.conf
+  CONFIG_FILE: .config
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
+  UPLOAD_BIN_DIR: true
+  UPLOAD_FIRMWARE: true
+  TZ: Asia/Shanghai
+  ARCHITECTURE: armv8
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: 准备完成
+      uses: actions/checkout@main
+
+    - name: 初始化编译环境
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        echo "------------------------------- 更新并安装依赖 -------------------------------"
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /etc/mysql /etc/php /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install $(cat $GITHUB_WORKSPACE/depends/ubuntu-22.04) || true
+        sudo -E apt-get -qq install -y python3-pip >/dev/null 2>&1 || true
+        sudo pip3 install pyelftools || true
+        echo "------------------------------- 清理Docker镜像和软件 -------------------------------"
+        docker rmi `docker images -q` || true
+        docker image prune -a -f || true
+        sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* adoptopenjdk* mysql* php* mongodb* dotnet* moby* snapd* android* || true
+        sudo -E apt-get -qq autoremove --purge || true
+        echo "------------------------------- 设置工作目录及时区 -------------------------------"
+        sudo timedatectl set-timezone "$TZ"
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
+
+    - name: 克隆源码
+      working-directory: /workdir
+      run: |
+        df -hT $PWD
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+
+    - name: 缓存构建动作
+      uses: klever1988/cachewrtbuild@main
+      with:
+        ccache: 'true'
+        mixkey: ubuntu-22.04-${{ env.ARCHITECTURE }}-${{ env.REPO_BRANCH }}
+        prefix: ${{ github.workspace }}/openwrt
+
+    - name: 加载自定义 feeds+DIY1
+      env:
+        FEEDS_CONF_PATH: ${{ env.ARCHITECTURE }}/${{ env.FEEDS_CONF }}
+      run: |
+        [ -e $FEEDS_CONF_PATH ] && mv $FEEDS_CONF_PATH openwrt/$FEEDS_CONF
+        chmod +x $DIY_P1_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P1_SH
+
+    - name: 更新 feeds
+      run: cd openwrt && ./scripts/feeds update -a
+
+    - name: 安装 feeds
+      run: cd openwrt && ./scripts/feeds install -a
+
+    - name: 加载自定义配置+DIY2
+      env:
+        CONFIG_FILE_PATH: ${{ env.ARCHITECTURE }}/${{ env.CONFIG_FILE }}
+      run: |
+        [ -e $CONFIG_FILE_PATH ] && mv $CONFIG_FILE_PATH openwrt/$CONFIG_FILE
+        chmod +x $DIY_P2_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P2_SH
+
+    - name: 下载软件包
+      id: package
+      run: |
+        cd openwrt
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: 编译固件
+      id: compile
+      run: |
+        cd openwrt
+        echo -e "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 检查磁盘空间
+      if: (!cancelled())
+      run: df -hT
+
+    - name: 上传 bin 文件夹
+      uses: actions/upload-artifact@main
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      with:
+        name: OpenWrt_bin${{ env.FILE_DATE }}
+        path: openwrt/bin
+
+    - name: 整理固件文件
+      id: organize
+      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      run: |
+        cd openwrt/bin/targets/*/*
+        rm -rf packages
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 上传固件目录
+      uses: actions/upload-artifact@main
+      if: steps.organize.outputs.status == 'success' && !cancelled()
+      with:
+        name: OpenWrt_firmware${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE }}
