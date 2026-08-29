@@ -93,9 +93,29 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        set -o pipefail
+        make -j$(nproc) V=s 2>&1 | tee "$GITHUB_WORKSPACE/world-build.log" || {
+          echo "===> main build FAILED; verbose single-thread retry"
+          make -j1 V=s 2>&1 | tail -150
+          echo "===> targeted re-run of target/linux/install V=s"
+          make V=s target/linux/install 2>&1 | tail -300
+          echo "===> read-only precondition checks"
+          ls -l build_dir/target-aarch64_generic_musl/linux-rockchip_armv8/image-rk3568-t68m.dtb 2>&1
+          ls -l staging_dir/image/easepi-rk3568-u-boot-rockchip.bin 2>&1
+          ls -l target/linux/rockchip/image/legacy/rk3568.bootscript target/linux/rockchip/image/legacy/default.bootscript 2>&1
+          echo "===> last 120 lines of world build log"
+          tail -120 "$GITHUB_WORKSPACE/world-build.log"
+          exit 1
+        }
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 上传编译日志
+      uses: actions/upload-artifact@main
+      if: always() && hashFiles('world-build.log') != ''
+      with:
+        name: world-build-log
+        path: world-build.log
 
     - name: 检查磁盘空间
       if: (!cancelled())
