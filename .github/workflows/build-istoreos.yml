@@ -123,3 +123,25 @@ jobs:
       with:
         name: OpenWrt_firmware${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
+
+    - name: 发布 Release
+      uses: softprops/action-gh-release@v2
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v25.12-${{ env.FILE_DATE }}-${{ github.sha }}
+        name: LYT T68M iStoreOS ${{ env.FILE_DATE }}
+        body: |
+          LYT T68M (rk3568) iStoreOS istoreos-25.12 定制固件
+
+          包含子板恢复补丁：SATA2 (sata@fc800000) + SDIO WiFi (AIC8800, sdmmc2)。
+          - eth0/eth1 千兆、eth2/eth3 RTL8125 2.5G、USB 均不受影响
+          - 刷写前请先整盘备份 mmcblk0（至少 /boot 与 overlay）
+          - 设备串口 console=ttyS2,1500000
+
+          images 与 sha256sums 见本 Release assets。
+        files: |
+          openwrt/bin/targets/*/*/istoreos-*
+          openwrt/bin/targets/*/*/sha256sums
+        fail_on_unmatched_files: true
