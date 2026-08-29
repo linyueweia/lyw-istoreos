@@ -31,6 +31,12 @@ if [ ! -f "$DTS" ]; then
     exit 1
 fi
 
+echo ">>> diy-part1: normalizing patch (literal \\t -> real TAB, strip CR)"
+sed -i 's/\\t/\t/g' "$PATCH"
+sed -i 's/\r$//' "$PATCH"
+LIT=$(grep -c '\\t' "$PATCH" || true)
+echo ">>> diy-part1: literal backslash-t remaining: ${LIT:-0}"
+
 echo ">>> diy-part1: applying DTS patch ($PATCH) => $DTS"
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
     echo ">>> diy-part1: trying git apply"
