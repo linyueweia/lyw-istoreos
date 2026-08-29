@@ -5,33 +5,33 @@ diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/roc
  &combphy2 {
  	status = "okay";
  };
- 
+
 +&sata2 {
-+\tstatus = "okay";
++	status = "okay";
 +};
 +
 +sdio_pwrseq: sdio-pwrseq {
-+\tcompatible = "mmc-pwrseq-simple";
-+\tclocks = <&rk809 1>;
-+\tclock-names = "ext_clock";
-+\tpinctrl-names = "default";
-+\tpinctrl-0 = <&wifi_enable_h>;
-+\treset-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
++	compatible = "mmc-pwrseq-simple";
++	clocks = <&rk809 1>;
++	clock-names = "ext_clock";
++	pinctrl-names = "default";
++	pinctrl-0 = <&wifi_enable_h>;
++	reset-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
 +};
 +
 +&sdmmc2 {
-+\tbus-width = <4>;
-+\tcap-sd-highspeed;
-+\tcap-sdio-irq;
-+\tdisable-wp;
-+\tkeep-power-in-suspend;
-+\tmmc-pwrseq = <&sdio_pwrseq>;
-+\tnon-removable;
-+\tpinctrl-names = "default";
-+\tpinctrl-0 = <&sdmmc2m0_bus4 &sdmmc2m0_clk &sdmmc2m0_cmd>;
-+\tsd-uhs-sdr104;
-+\tsupports-sdio;
-+\tstatus = "okay";
++	bus-width = <4>;
++	cap-sd-highspeed;
++	cap-sdio-irq;
++	disable-wp;
++	keep-power-in-suspend;
++	mmc-pwrseq = <&sdio_pwrseq>;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdmmc2m0_bus4 &sdmmc2m0_clk &sdmmc2m0_cmd>;
++	sd-uhs-sdr104;
++	supports-sdio;
++	status = "okay";
 +};
  &cpu0 {
  	cpu-supply = <&vdd_cpu>;
@@ -42,12 +42,12 @@ diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/roc
  			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
  		};
  	};
- 
-+\tsdio-pwrseq {
-+\t\twifi_enable_h: wifi-enable-h {
-+\t\t\trockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_up>;
-+\t\t};
-+\t};
+
++	sdio-pwrseq {
++		wifi_enable_h: wifi-enable-h {
++			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
 +
  	rockchip-key {
  		reset_button_pin: reset-button-pin {
