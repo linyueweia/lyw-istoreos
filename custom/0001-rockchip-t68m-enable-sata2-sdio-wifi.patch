@@ -1,11 +1,11 @@
 diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
 --- a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
 +++ b/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
-@@ -211,7 +211,34 @@
+@@ -211,7 +211,38 @@
  &combphy2 {
  	status = "okay";
  };
-
+ 
 +&sata2 {
 +	status = "okay";
 +};
@@ -16,6 +16,8 @@ diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/roc
 +	clock-names = "ext_clock";
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&wifi_enable_h>;
++	post-power-on-delay-ms = <100>;
++	power-off-delay-us = <5000000>;
 +	reset-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
 +};
 +
@@ -31,6 +33,8 @@ diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/roc
 +	pinctrl-0 = <&sdmmc2m0_bus4 &sdmmc2m0_clk &sdmmc2m0_cmd>;
 +	sd-uhs-sdr104;
 +	supports-sdio;
++	vmmc-supply = <&vcc3v3_sys>;
++	vqmmc-supply = <&vcc_1v8>;
 +	status = "okay";
 +};
  &cpu0 {
@@ -42,7 +46,7 @@ diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/roc
  			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
  		};
  	};
-
+ 
 +	sdio-pwrseq {
 +		wifi_enable_h: wifi-enable-h {
 +			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_up>;
