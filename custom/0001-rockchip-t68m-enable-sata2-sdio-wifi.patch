@@ -1,0 +1,77 @@
+From fbba2f2fbd0b7f7a4a9243b47fd6480fccf2aa36 Mon Sep 17 00:00:00 2001
+From: linyueweia <lyw@example.com>
+Date: Sat, 29 Aug 2026 00:00:00 +0800
+Subject: [PATCH] rockchip: t68m: enable SATA2 and SDIO WiFi (aic8800)
+
+Restores the daughterboard functionality present in the legacy
+istoreos-22.03.7 DTB on LYT T68M:
+- sata2 (sata@fc800000) status=okay (VDD powered by the already-on
+  vcc3v3_minipcie rail, GPIO0_23)
+- sdmmc2 (mmc@fe000000) SDIO node with sdio-pwrseq for the AIC8800
+  module (reset on GPIO3_D5, active low; 32k ext clock from rk809)
+
+Signed-off-by: linyueweia <lyw@example.com>
+---
+ target/linux/rockchip/dts/rk3568/rk3568-t68m.dts | 34 ++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
+index 0000000000..0000000000 100644
+--- a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
++++ b/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
+@@ -211,6 +239,34 @@
+ &combphy2 {
+ 	status = "okay";
+ };
+ 
++&sata2 {
++	status = "okay";
++};
++
++sdio_pwrseq: sdio-pwrseq {
++	compatible = "mmc-pwrseq-simple";
++	clocks = <&rk809 1>;
++	clock-names = "ext_clock";
++	pinctrl-names = "default";
++	pinctrl-0 = <&wifi_enable_h>;
++	reset-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
++};
++
++&sdmmc2 {
++	bus-width = <4>;
++	cap-sd-highspeed;
++	cap-sdio-irq;
++	disable-wp;
++	keep-power-in-suspend;
++	mmc-pwrseq = <&sdio_pwrseq>;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdmmc2m0_bus4 &sdmmc2m0_clk &sdmmc2m0_cmd>;
++	sd-uhs-sdr104;
++	supports-sdio;
++	status = "okay";
++};
++
+ &cpu0 {
+ 	cpu-supply = <&vdd_cpu>;
+ };
+@@ -625,6 +631,12 @@
+ 	pmic {
+ 		pmic_int: pmic_int {
+ 			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
+ 		};
+ 	};
+ 
++	sdio-pwrseq {
++		wifi_enable_h: wifi-enable-h {
++			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
+ 	rockchip-key {
+ 		reset_button_pin: reset-button-pin {
+ 			rockchip,pins = <3 RK_PB1 RK_FUNC_GPIO &pcfg_pull_up>;
+ 		};
+ 	};
+-- 
+2.39.5
