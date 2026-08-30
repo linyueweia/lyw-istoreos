@@ -1,7 +1,7 @@
 diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
 --- a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
 +++ b/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts
-@@ -211,7 +211,38 @@
+@@ -211,7 +211,40 @@
  &combphy2 {
  	status = "okay";
  };
@@ -10,15 +10,17 @@ diff --git a/target/linux/rockchip/dts/rk3568/rk3568-t68m.dts b/target/linux/roc
 +	status = "okay";
 +};
 +
-+sdio_pwrseq: sdio-pwrseq {
-+	compatible = "mmc-pwrseq-simple";
-+	clocks = <&rk809 1>;
-+	clock-names = "ext_clock";
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&wifi_enable_h>;
-+	post-power-on-delay-ms = <100>;
-+	power-off-delay-us = <5000000>;
-+	reset-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
++/ {
++	sdio_pwrseq: sdio-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		clocks = <&rk809 1>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_enable_h>;
++		post-power-on-delay-ms = <100>;
++		power-off-delay-us = <5000000>;
++		reset-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
++	};
 +};
 +
 +&sdmmc2 {
