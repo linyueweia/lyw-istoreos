@@ -2,9 +2,21 @@ name: Build iStore OS T68M
 
 on:
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: 强制重新编译（即使上游无更新）
+        required: false
+        default: 'false'
+        type: boolean
+  schedule:
+    - cron: '0 */2 * * *'
 
 permissions:
   contents: write
+
+concurrency:
+  group: build-istoreos-cron
+  cancel-in-progress: false
 
 env:
   REPO_URL: https://github.com/istoreos/istoreos
@@ -19,7 +31,47 @@ env:
   ARCHITECTURE: armv8
 
 jobs:
+  watch-upstream:
+    runs-on: ubuntu-22.04
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      upstream_sha: ${{ steps.check.outputs.upstream_sha }}
+    steps:
+    - uses: actions/checkout@main
+
+    - name: 检查上游 istoreos-25.12 更新
+      id: check
+      run: |
+        FORCE="${{ github.event_name == 'workflow_dispatch' && inputs.force_build || 'false' }}"
+        LAST_SHA=""
+        if [ -f last-upstream-sha ]; then
+          LAST_SHA=$(cat last-upstream-sha)
+        fi
+        echo "last_built_sha=${LAST_SHA}"
+        echo "force_build=${FORCE}"
+
+        API_SHA=$(curl -s "https://api.github.com/repos/istoreos/istoreos/commits/istoreos-25.12?per_page=1" \
+          | sed -n 's/.*"sha": *"\([0-9a-f]\{40\}\)".*/\1/p' | head -1 || true)
+        echo "upstream_sha=${API_SHA}"
+
+        if [ "$FORCE" = "true" ]; then
+          echo "changed=true"
+          echo "changed=true" >> $GITHUB_OUTPUT
+        elif [ -z "$API_SHA" ]; then
+          echo "检查上游失败，本次跳过"
+          echo "changed=false" >> $GITHUB_OUTPUT
+        elif [ "$API_SHA" = "$LAST_SHA" ]; then
+          echo "上游无更新，无需重编"
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "上游有新版本，触发重编"
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+        echo "upstream_sha=${API_SHA}" >> $GITHUB_OUTPUT
+
   build:
+    needs: watch-upstream
+    if: needs.watch-upstream.outputs.changed == 'true'
     runs-on: ubuntu-22.04
     steps:
     - name: 准备完成
@@ -168,3 +220,16 @@ jobs:
           openwrt/bin/targets/*/*/istoreos-*
           openwrt/bin/targets/*/*/sha256sums
         fail_on_unmatched_files: true
+
+    - name: 记录已编译上游版本
+      if: success()
+      env:
+        UPSTREAM_SHA: ${{ needs.watch-upstream.outputs.upstream_sha }}
+      run: |
+        cd "$GITHUB_WORKSPACE"
+        git config user.name "istore-build-bot"
+        git config user.email "istore-build-bot@users.noreply.github.com"
+        echo "${UPSTREAM_SHA}" > last-upstream-sha
+        git add last-upstream-sha
+        git commit -m "build: record upstream ${{ env.REPO_BRANCH }} ${UPSTREAM_SHA}"
+        git push origin "${{ github.ref_name }}"
