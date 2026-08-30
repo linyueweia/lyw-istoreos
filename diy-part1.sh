@@ -65,3 +65,34 @@ for marker in '&sata2 {' 'sdio_pwrseq: sdio-pwrseq {' '&sdmmc2 {' 'wifi_enable_h
 done
 
 echo ">>> diy-part1: DTS patch applied and verified OK"
+
+echo ">>> diy-part1: v2 overlay (free combphy2 for SATA2 + keep miniPCIe rail powered)"
+# drop v1 pwrseq delays to match vendor reference exactly
+sed -i '/post-power-on-delay-ms = <100>;/d; /power-off-delay-us = <5000000>;/d' "$DTS"
+cat >> "$DTS" <<'EOF'
+
+&pcie2x1 {
+	status = "disabled";
+};
+
+&vcc3v3_minipcie {
+	regulator-always-on;
+	regulator-boot-on;
+};
+EOF
+
+echo ">>> diy-part1: verifying v2 markers"
+for marker in '&pcie2x1 {' 'status = "disabled";' '&vcc3v3_minipcie {' 'regulator-always-on;' 'regulator-boot-on;'; do
+    if grep -qF "$marker" "$DTS"; then
+        echo "    v2 marker OK: $marker"
+    else
+        echo "!!! diy-part1: v2 marker NOT FOUND: $marker"
+        exit 1
+    fi
+done
+if grep -qF 'post-power-on-delay-ms = <100>;' "$DTS" || grep -qF 'power-off-delay-us = <5000000>;' "$DTS"; then
+    echo "!!! diy-part1: v1 pwrseq delay lines still present"
+    exit 1
+fi
+
+echo ">>> diy-part1: v2 overlay applied and verified OK"
