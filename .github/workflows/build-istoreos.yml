@@ -217,7 +217,7 @@ jobs:
 
           images 与 sha256sums 见本 Release assets。
         files: |
-          openwrt/bin/targets/*/*/istoreos-*-lyt_t68m-*
+          openwrt/bin/targets/*/*/istoreos-*
           openwrt/bin/targets/*/*/sha256sums
         fail_on_unmatched_files: true
 
