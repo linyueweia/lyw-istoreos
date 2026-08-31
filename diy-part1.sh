@@ -15,6 +15,43 @@ set -e
 
 echo ">>> diy-part1: pwd=$(pwd)"
 echo ">>> diy-part1: GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+
+# =====================================================================
+# 修复内核 md5 校验码(vermagic)：采用 OpenWrt 官方源内核模块 hash
+#   内核模块能否安装取决于 kernel 包版本里的 vermagic 是否与官方软件源
+#   一致。自编固件内核 .config 与官方不同 → vermagic 不同 → opkg 判定
+#   不匹配而装不上。kernel-defaults.mk 会优先使用源码根 .vermagic(若存在),
+#   否则才按本机 .config 计算。这里直接写入官方 hash 强制一致。
+# =====================================================================
+hash_value=""
+Releases_version=$(cat include/version.mk 2>/dev/null | sed -n 's|.*releases/\([^)]*\)).*|\1|p')
+if [ -z "$Releases_version" ]; then
+    Releases_version=$(cat package/base-files/image-config.in 2>/dev/null | sed -n 's|.*releases/\([^"]*\)".*|\1|p')
+fi
+echo ">>> diy-part1: OpenWrt releases 版本 = ${Releases_version:-未知}"
+
+for base in \
+    "https://downloads.openwrt.org/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+    "https://archive.openwrt.org/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+    "https://mirrors.tuna.tsinghua.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+    "https://mirrors.ustc.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" ; do
+    http_value=$(wget -qO- --timeout=20 "$base" 2>/dev/null || true)
+    hash_value=$(echo "$http_value" | sed -n 's/.*-\([0-9a-f]\{32\}\)\/*.*/\1/p' | head -1)
+    if [ -n "$hash_value" ]; then
+        echo ">>> diy-part1: 从 $base 抓到官方 kmod hash = $hash_value"
+        break
+    fi
+done
+
+hash_value=${hash_value:-$(echo "$http_value" | sed -n 's/.*\([0-9a-f]\{32\}\).*/\1/p' | head -1)}
+if [ -n "$hash_value" ] && [[ "$hash_value" =~ ^[0-9a-f]{32}$ ]] && [ -f include/version.mk ]; then
+    echo "$hash_value" > .vermagic
+    echo ">>> diy-part1: 已写入源码根 .vermagic = $hash_value (官方源 kmod 可装)"
+else
+    echo ">>> diy-part1: 未抓到官方 kmod hash, 将按本机 .config 计算 vermagic(官方源 kmod 可能装不上)"
+fi
+echo ">>> diy-part1: --------------------------------------------------"
+
 echo ">>> diy-part1: workspace files:"
 ls -la "$GITHUB_WORKSPACE/custom" || true
 
