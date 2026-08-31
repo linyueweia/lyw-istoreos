@@ -217,7 +217,7 @@ jobs:
 
           images 与 sha256sums 见本 Release assets。
         files: |
-          openwrt/bin/targets/*/*/istoreos-*
+          openwrt/bin/targets/*/*/istoreos-*-lyt_t68m-*
           openwrt/bin/targets/*/*/sha256sums
         fail_on_unmatched_files: true
 
@@ -230,6 +230,11 @@ jobs:
         git config user.name "istore-build-bot"
         git config user.email "istore-build-bot@users.noreply.github.com"
         echo "${UPSTREAM_SHA}" > last-upstream-sha
-        git add last-upstream-sha
-        git commit -m "build: record upstream ${{ env.REPO_BRANCH }} ${UPSTREAM_SHA}"
-        git push origin "${{ github.ref_name }}"
+        git add -- last-upstream-sha
+        # 仅在内容真正变化时才提交+推送，避免 'no changes added' 空提交失败
+        if git diff --cached --quiet -- last-upstream-sha; then
+          echo "last-upstream-sha 无变化，跳过提交"
+        else
+          git commit -m "build: record upstream ${{ env.REPO_BRANCH }} ${UPSTREAM_SHA}"
+          git push origin "${{ github.ref_name }}" || echo "push 失败(可忽略)"
+        fi
