@@ -20,7 +20,7 @@ concurrency:
 
 env:
   REPO_URL: https://github.com/istoreos/istoreos
-  REPO_BRANCH: istoreos-25.12
+  REPO_BRANCH: istoreos-24.10
   FEEDS_CONF: feeds.conf
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -39,7 +39,7 @@ jobs:
     steps:
     - uses: actions/checkout@main
 
-    - name: 检查上游 istoreos-25.12 更新
+    - name: 检查上游 istoreos-24.10 更新
       id: check
       run: |
         FORCE="${{ github.event_name == 'workflow_dispatch' && inputs.force_build || 'false' }}"
@@ -50,7 +50,7 @@ jobs:
         echo "last_built_sha=${LAST_SHA}"
         echo "force_build=${FORCE}"
 
-        API_SHA=$(curl -s "https://api.github.com/repos/istoreos/istoreos/commits/istoreos-25.12?per_page=1" \
+        API_SHA=$(curl -s "https://api.github.com/repos/istoreos/istoreos/commits/istoreos-24.10?per_page=1" \
           | sed -n 's/.*"sha": *"\([0-9a-f]\{40\}\)".*/\1/p' | head -1 || true)
         echo "upstream_sha=${API_SHA}"
 
@@ -205,10 +205,10 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v25.12-${{ env.FILE_DATE }}-${{ github.sha }}
+        tag_name: v24.10-${{ env.FILE_DATE }}-${{ github.sha }}
         name: LYT T68M iStoreOS ${{ env.FILE_DATE }}
         body: |
-          LYT T68M (rk3568) iStoreOS istoreos-25.12 定制固件
+          LYT T68M (rk3568) iStoreOS istoreos-24.10 定制固件
 
           包含子板恢复补丁：SATA2 (sata@fc800000) + SDIO WiFi (AIC8800, sdmmc2)。
           - eth0/eth1 千兆、eth2/eth3 RTL8125 2.5G、USB 均不受影响
