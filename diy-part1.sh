@@ -24,26 +24,33 @@ echo ">>> diy-part1: GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
 #   否则才按本机 .config 计算。这里直接写入官方 hash 强制一致。
 # =====================================================================
 hash_value=""
-Releases_version=$(cat include/version.mk 2>/dev/null | sed -n 's|.*releases/\([^)]*\)).*|\1|p')
+# 解析官方 OpenWrt release 版本: 优先取 version.mk 的 VERSION_REPO 行(如 .../releases/25.12.5),
+# 否则回退 requests 行/package/base-files
+Releases_version=""
+if [ -f include/version.mk ]; then
+    Releases_version=$(sed -n 's|.*openwrt.org/releases/\([0-9.]*\).*|\1|p' include/version.mk | head -1)
+fi
 if [ -z "$Releases_version" ]; then
     Releases_version=$(cat package/base-files/image-config.in 2>/dev/null | sed -n 's|.*releases/\([^"]*\)".*|\1|p')
 fi
 echo ">>> diy-part1: OpenWrt releases 版本 = ${Releases_version:-未知}"
 
-for base in \
-    "https://downloads.openwrt.org/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
-    "https://archive.openwrt.org/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
-    "https://mirrors.tuna.tsinghua.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
-    "https://mirrors.ustc.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" ; do
-    http_value=$(wget -qO- --timeout=20 "$base" 2>/dev/null || true)
-    hash_value=$(echo "$http_value" | sed -n 's/.*-\([0-9a-f]\{32\}\)\/*.*/\1/p' | head -1)
-    if [ -n "$hash_value" ]; then
-        echo ">>> diy-part1: 从 $base 抓到官方 kmod hash = $hash_value"
-        break
-    fi
-done
+if [ -n "$Releases_version" ]; then
+    for base in \
+        "https://downloads.openwrt.org/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+        "https://mirrors.cernet.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+        "https://mirrors.tuna.tsinghua.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+        "https://mirrors.ustc.edu.cn/openwrt/releases/${Releases_version}/targets/rockchip/armv8/kmods/" \
+        "https://archive.openwrt.org/releases/${Releases_version}/targets/rockchip/armv8/kmods/" ; do
+        http_value=$(wget -qO- --timeout=20 "$base" 2>/dev/null || true)
+        hash_value=$(echo "$http_value" | sed -n 's/.*-\([0-9a-f]\{32\}\)\/*.*/\1/p' | head -1)
+        if [ -n "$hash_value" ]; then
+            echo ">>> diy-part1: 从 $base 抓到官方 kmod hash = $hash_value"
+            break
+        fi
+    done
+fi
 
-hash_value=${hash_value:-$(echo "$http_value" | sed -n 's/.*\([0-9a-f]\{32\}\).*/\1/p' | head -1)}
 if [ -n "$hash_value" ] && [[ "$hash_value" =~ ^[0-9a-f]{32}$ ]] && [ -f include/version.mk ]; then
     echo "$hash_value" > .vermagic
     echo ">>> diy-part1: 已写入源码根 .vermagic = $hash_value (官方源 kmod 可装)"
