@@ -189,10 +189,10 @@ jobs:
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
-        # 隐私处理：T68M 固件/manifest 去设备名，避免被检索
-        mv istoreos-rockchip-armv8-lyt_t68m-squashfs-sysupgrade.img.gz istoreos-rockchip-armv8-squashfs-sysupgrade.img.gz 2>/dev/null || true
-        mv istoreos-rockchip-armv8-lyt_t68m.manifest istoreos-rockchip-armv8.manifest 2>/dev/null || true
-        sed -i 's/istoreos-rockchip-armv8-lyt_t68m-squashfs-sysupgrade\.img\.gz/istoreos-rockchip-armv8-squashfs-sysupgrade.img.gz/g; s/istoreos-rockchip-armv8-lyt_t68m\.manifest/istoreos-rockchip-armv8.manifest/g' sha256sums
+        # 隐私处理：设备名 lyt_t68m -> lyt_lyw（对外可识别代号）
+        mv istoreos-rockchip-armv8-lyt_t68m-squashfs-sysupgrade.img.gz istoreos-rockchip-armv8-lyt_lyw-squashfs-sysupgrade.img.gz 2>/dev/null || true
+        mv istoreos-rockchip-armv8-lyt_t68m.manifest istoreos-rockchip-armv8-lyt_lyw.manifest 2>/dev/null || true
+        sed -i 's/lyt_t68m/lyt_lyw/g' sha256sums
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
