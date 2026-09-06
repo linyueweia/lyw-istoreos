@@ -9,7 +9,7 @@
 # File name: diy-part1.sh
 # Description: OpenWrt DIY script part 1 (Before Update feeds)
 #
-# Apply the LYT T68M daughterboard DTS patch (SATA2 + SDIO WiFi AIC8800)
+# Apply hardware enablement DTS patch
 
 set -e
 
@@ -110,7 +110,7 @@ done
 
 echo ">>> diy-part1: DTS patch applied and verified OK"
 
-echo ">>> diy-part1: v2 overlay (free combphy2 for SATA2 + keep miniPCIe rail powered)"
+echo ">>> diy-part1: v2 overlay applied (combphy2 repurpose + rail power retention)"
 # drop v1 pwrseq delays to match vendor reference exactly
 sed -i '/post-power-on-delay-ms = <100>;/d; /power-off-delay-us = <5000000>;/d' "$DTS"
 cat >> "$DTS" <<'EOF'

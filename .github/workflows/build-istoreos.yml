@@ -1,4 +1,4 @@
-name: Build iStore OS T68M
+name: Build iStore OS
 
 on:
   workflow_dispatch:
@@ -189,6 +189,10 @@ jobs:
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
+        # 隐私处理：T68M 固件/manifest 去设备名，避免被检索
+        mv istoreos-rockchip-armv8-lyt_t68m-squashfs-sysupgrade.img.gz istoreos-rockchip-armv8-squashfs-sysupgrade.img.gz 2>/dev/null || true
+        mv istoreos-rockchip-armv8-lyt_t68m.manifest istoreos-rockchip-armv8.manifest 2>/dev/null || true
+        sed -i 's/istoreos-rockchip-armv8-lyt_t68m-squashfs-sysupgrade\.img\.gz/istoreos-rockchip-armv8-squashfs-sysupgrade.img.gz/g; s/istoreos-rockchip-armv8-lyt_t68m\.manifest/istoreos-rockchip-armv8.manifest/g' sha256sums
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
@@ -206,15 +210,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: v24.10-${{ env.FILE_DATE }}-${{ github.sha }}
-        name: LYT T68M iStoreOS ${{ env.FILE_DATE }}
+        name: iStoreOS 固件 ${{ env.FILE_DATE }}
         body: |
-          LYT T68M (rk3568) iStoreOS istoreos-24.10 定制固件
-
-          包含子板恢复补丁：SATA2 (sata@fc800000) + SDIO WiFi (AIC8800, sdmmc2)。
-          - eth0/eth1 千兆、eth2/eth3 RTL8125 2.5G、USB 均不受影响
-          - 刷写前请先整盘备份 mmcblk0（至少 /boot 与 overlay）
-          - 设备串口 console=ttyS2,1500000
-
           images 与 sha256sums 见本 Release assets。
         files: |
           openwrt/bin/targets/*/*/istoreos-*
